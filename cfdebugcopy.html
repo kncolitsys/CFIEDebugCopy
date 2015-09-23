@@ -1,0 +1,94 @@
+<html>
+<script language="JavaScript" defer>
+String.prototype.trim = function() {
+	return this.replace(/^\s+|\s+$/g, "");
+};
+
+String.prototype.startsWith = function(prefix) {
+	return (this.indexOf(prefix) == 0);
+};
+
+Array.prototype.indexOf = function(v,n){
+  n = (n==null)?0:n; var m = this.length;
+  for(var i = n; i < m; i++)
+    if(this[i] == v)
+       return i;
+  return -1;
+};
+
+var dateTypes = new Array( "CF_SQL_DATE", "CF_SQL_TIME", "CF_SQL_TIMESTAMP" );
+var quotedTypes = new Array( "CF_SQL_CHAR", "CF_SQL_CLOB", "CF_SQL_IDSTAMP", "CF_SQL_LONGVARCHAR", "CF_SQL_VARCHAR" );
+
+var parentwin = external.menuArguments;
+var doc = parentwin.document;
+
+function copyQuery() {
+
+	var paramStart = "Query Parameter Value(s) -";
+	var selTxt = '';
+	var parsedTxt = '';
+
+	if (doc.selection) {
+		selTxt = doc.selection.createRange().text;
+	}
+
+	var pos = selTxt.indexOf(paramStart);
+
+	if (pos > 0) {
+
+		parsedTxt = selTxt.substring(0, pos);
+
+		var values = getParamValues(selTxt);
+
+		for (var i = 0; i < values.length; i++) {
+			parsedTxt = parsedTxt.replace(/\?/,values[i]);
+		}
+	} else {
+		parsedTxt = selTxt;
+	}
+
+	parentwin.clipboardData.setData('text', parsedTxt);
+
+}
+
+function getParamValues(valueString) {
+
+	var inputValues = valueString.split("\n");
+	var returnArray = new Array();
+
+	for (var i = 0; i < inputValues.length; i++) {
+
+		if (inputValues[i].startsWith("Parameter")) {
+
+			var param = inputValues[i].split("=");
+			var type = param[0].substring((param[0].indexOf("(") + 1),param[0].indexOf(")")).toUpperCase();
+			var val = param[1].trim();
+
+			if (dateTypes.indexOf(type) >= 0) {
+				if (!val.startsWith("{")) {
+					val = "'" + val + "'";
+				}
+			} else if (quotedTypes.indexOf(type) >= 0) {
+				val = "'" + val.replace(/'/, "''") + "'";
+			} else if (type == "CF_SQL_BIT") {
+				if (val == "0" || val.toUpperCase() == "FALSE" || val.toUpperCase() == "NO") {
+					val = "0";
+				} else {
+					val = "1";
+				}
+			}
+
+			val = val + " /* " + inputValues[i].trim() + " */ ";
+			returnArray.push(val);
+
+		}
+	}
+
+	return returnArray;
+
+}
+
+copyQuery();
+</script>
+</html>
+
